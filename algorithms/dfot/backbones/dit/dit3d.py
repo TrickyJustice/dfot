@@ -1,12 +1,28 @@
 from typing import Optional
 import torch
-from torch import nn
+import torch.nn as nn
 from omegaconf import DictConfig
 from einops import rearrange, repeat
 from timm.models.vision_transformer import PatchEmbed
 from ..base_backbone import BaseBackbone
 from .dit_base import DiTBase
 
+
+class CaptionEmbedder(nn.Module):
+    """
+    Embeds text caption(condition) into vector representations.
+    """
+
+    def __init__(self, in_channels, hidden_size, act_layer=nn.GELU(approximate='tanh'), token_nums = 77):
+        super().__init__()
+        self.y_proj = Mlp(in_features=in_channels, hidden_features=hidden_size, out_features=hidden_size, act_layer=act_layer, drop=0)
+        self.register_buffer("y_embedding", nn.Parameter(torch.randn(token_nums, in_channels) / in_channels ** 0.5))
+
+    def forward(self, caption, train):
+        # if train:
+        #     assert caption.shape[2:] == self.y_embedding.shape
+        caption = self.y_proj(caption)
+        return caption
 
 class DiT3D(BaseBackbone):
 
@@ -47,6 +63,7 @@ class DiT3D(BaseBackbone):
             embed_dim=hidden_size,
             bias=True,
         )
+        self.y_embedder = CaptionEmbedder(in_channels=caption_channels, hidden_size=hidden_size, act_layer=approx_gelu, token_nums = 1)
 
         self.dit_base = DiTBase(
             num_patches=self.num_patches,
@@ -130,7 +147,7 @@ class DiT3D(BaseBackbone):
         emb = self.noise_level_pos_embedding(noise_levels)
 
         if external_cond is not None:
-            emb = emb + self.external_cond_embedding(external_cond, external_cond_mask)
+            emb = emb + self.y_embedder(external_cond)
         emb = repeat(emb, "b t c -> b (t p) c", p=self.num_patches)
 
         x = self.dit_base(x, emb)  # (B, N, C)
