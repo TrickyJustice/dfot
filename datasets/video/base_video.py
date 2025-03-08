@@ -44,6 +44,7 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
         self.resolution = cfg.resolution
         self.latent_resolution = cfg.resolution // cfg.latent.downsampling_factor[1]
         self.save_dir = Path(cfg.save_dir)
+        self.vidos_dir = Path(cfg.videos_dir)
         self.latent_dir = self.save_dir.with_name(
             f"{self.save_dir.name}_latent_{self.latent_resolution}{'_' + cfg.latent.suffix if cfg.latent.suffix else ''}"
         )
@@ -55,6 +56,9 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
             self.download_dataset()
         if not self.metadata_dir.exists():
             self.metadata_dir.mkdir(exist_ok=True, parents=True)
+        # metadata_file = self.metadata_dir / f"{self.split}.pt"
+        # if not metadata_file.exists():
+        #     self.build_metadata(self.split)
             for split in self._ALL_SPLITS:
                 self.build_metadata(split)
 
@@ -88,7 +92,7 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
         }
         ```
         """
-        video_paths = sorted(list((self.save_dir / split).glob("**/*.mp4")), key=str)
+        video_paths = sorted(list((self.videos_dir).glob("/*.webm")), key=str)
         dl: torch.utils.data.DataLoader = torch.utils.data.DataLoader(
             _VideoTimestampsDataset(video_paths),
             batch_size=16,
@@ -185,16 +189,16 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
         return None
 
     def load_metadata(self) -> List[Dict[str, Any]]:
-        """
-        Load metadata from metadata_dir
-        """
-        metadata = torch.load(
-            self.metadata_dir / f"{self.split}.pt", weights_only=False
-        )
+        metadata_path = self.metadata_dir / f"{self.split}.pt"
+        if not metadata_path.exists() or metadata_path.stat().st_size == 0:
+            print(f"Metadata file {metadata_path} is missing or empty. Rebuilding metadata...")
+            self.build_metadata(self.split)
+        metadata = torch.load(metadata_path, weights_only=False)
         return [
             {key: metadata[key][i] for key in metadata.keys()}
             for i in range(len(metadata["video_paths"]))
         ]
+
 
     def video_length(self, video_metadata: Dict[str, Any]) -> int:
         """
@@ -236,10 +240,12 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
         """
         if end_frame is None:
             end_frame = self.video_length(video_metadata)
-        video_path, video_pts = (
-            video_metadata["video_paths"],
-            video_metadata["video_pts"],
-        )
+        # video_path, video_pts = (
+        #     video_metadata["video_paths"],
+        #     video_metadata["video_pts"],
+        # )
+        video_path = Path(video_metadata["video_paths"])
+        video_pts = video_metadata["video_pts"]
         start_pts = video_pts[start_frame].item()
         end_pts = video_pts[end_frame - 1].item()
         video = read_video(video_path, start_pts, end_pts)

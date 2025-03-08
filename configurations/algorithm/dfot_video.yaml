@@ -17,6 +17,8 @@ data_std: ${dataset.data_std}
 external_cond_dim: ${dataset.external_cond_dim}
 external_cond_stack: ${dataset.external_cond_stack}
 external_cond_processing: ${dataset.external_cond_processing}
+external_cond_use_t5: ${dataset.external_cond_use_t5}
+t5: ${dataset.t5}
 # training hyperparameters
 compile: False
 weight_decay: 1e-3

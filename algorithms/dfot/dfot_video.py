@@ -25,7 +25,7 @@ from .diffusion import (
     ContinuousDiffusion,
 )
 from .history_guidance import HistoryGuidance
-
+from .clipEmbedding import CLIPEncoder
 
 class DFoTVideo(BasePytorchAlgo):
     """
@@ -41,6 +41,12 @@ class DFoTVideo(BasePytorchAlgo):
         self.external_cond_dim = cfg.external_cond_dim * (
             cfg.frame_skip if cfg.external_cond_stack else 1
         )
+
+        if cfg.get("external_cond_use_t5", False):
+            self.t5 = CLIPEncoder(device = "cuda")
+        else:
+            self.t5 = None
+
 
         # 2. Latent
         self.is_latent_diffusion = cfg.latent.enable
@@ -294,6 +300,16 @@ class DFoTVideo(BasePytorchAlgo):
             ), "Masks should not be provided from the dataset when using VideoVAE."
         else:
             masks = torch.ones(*xs.shape[:2]).bool().to(self.device)
+
+        if conditions is not None and isinstance(conditions, list):
+            B = len(conditions)
+            if self.t5 is not None:
+                caption_embs, _ =  self.t5.get_text_embeddings(conditions)
+                embedded = caption_embs
+            else:
+                embedded = torch.zeros(B, self.external_cond_dim, device = self.device)
+            conditions = embedded.unsqueeze(1).repeat(1, self.n_frames, 1)
+            batch["conds"] = conditions
 
         return xs, conditions, masks, gt_videos
 

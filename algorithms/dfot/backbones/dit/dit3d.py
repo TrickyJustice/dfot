@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig
 from einops import rearrange, repeat
-from timm.models.vision_transformer import PatchEmbed
+from timm.models.vision_transformer import PatchEmbed, Mlp
 from ..base_backbone import BaseBackbone
 from .dit_base import DiTBase
 
@@ -63,7 +63,8 @@ class DiT3D(BaseBackbone):
             embed_dim=hidden_size,
             bias=True,
         )
-        self.y_embedder = CaptionEmbedder(in_channels=caption_channels, hidden_size=hidden_size, act_layer=approx_gelu, token_nums = 1)
+        approx_gelu = lambda: nn.GELU(approximate='tanh')
+        self.y_embedder = CaptionEmbedder(in_channels=512, hidden_size=hidden_size, act_layer=approx_gelu, token_nums = 1)
 
         self.dit_base = DiTBase(
             num_patches=self.num_patches,

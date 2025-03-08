@@ -1,0 +1,24 @@
+defaults:
+  - base_video
+
+latent:
+  type: online
+  suffix: null
+  downsampling_factor: [4, 8]
+  num_channels: 16
+save_dir: data/something-something-v2
+max_frames: 17
+context_length: 5
+resolution: 128
+data_mean: [[[0.47071374]], [[0.4295889]], [[0.40426798]]]
+data_std: [[[0.26287448]], [[0.25979642]], [[0.26238941]]]
+filter_min_len: null
+annotation_paths: 
+  training: "/home/Gurjot/dfot_data/labels/train.json"
+  test: "/home/Gurjot/dfot_data/labels/test.json"
+  validation: "/home/Gurjot/dfot_data/labels/validation.json"
+videos_dir: "/home/Gurjot/dfot_data/20bn-something-something-v2"
+subdataset_size: 4
+external_cond_use_t5: True
+t5:
+  cache_dir: "output/pretrained_models/t5_ckpts"

@@ -7,7 +7,7 @@ import urllib.parse as ul
 import ftfy
 import torch
 from bs4 import BeautifulSoup
-from transformers import T5EncoderModel, AutoTokenizer
+from transformers import T5EncoderModel, T5Tokenizer
 from huggingface_hub import hf_hub_download
 
 class T5Embedder:
@@ -83,7 +83,7 @@ class T5Embedder:
             tokenizer_path = cache_dir
 
         print(tokenizer_path)
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+        self.tokenizer = T5Tokenizer.from_pretrained(tokenizer_path, legacy = False)
         self.model = T5EncoderModel.from_pretrained(path, **t5_model_kwargs).eval()
         self.model_max_length = model_max_length
 
@@ -231,3 +231,12 @@ class T5Embedder:
         caption = re.sub(r'^\.\S+$', '', caption)
 
         return caption.strip()
+
+
+if __name__ == '__main__':
+    text = ["test sentence", "test sentence 2 very long very long"] 
+    device = 'cuda'
+    clipenc = T5Embedder(device, local_cache=True,cache_dir="/home/Gurjot/dfot/output/pretrained_models/t5_ckpts",torch_dtype=torch.float)
+    embed, mask = clipenc.get_text_embeddings(text)
+    print(embed.shape)
+    print(mask.shape)
