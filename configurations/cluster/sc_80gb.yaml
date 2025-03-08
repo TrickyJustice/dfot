@@ -1,0 +1,36 @@
+defaults:
+  - base_slurm
+
+params:
+  env_name: diffusion-forcing
+  email: quevedo@cs.stanford.edu
+  account: nlp
+  partition: sphinx
+  num_nodes: 1
+  num_gpus: 4
+  machine_type: a100
+  exclude: sphinx[1-2]
+  num_cpus: 16
+  memory: 300G
+  time: "72:0:0"
+
+launch_template: |
+  #!/bin/bash
+
+  #SBATCH -J {name}
+  #SBATCH -o {log_dir}/out_%j.out
+  #SBATCH -e {log_dir}/error_%j.err
+  #SBATCH --mail-user={email}
+  #SBATCH --mail-type=FAIL
+  #SBATCH --account={account}
+  #SBATCH --nodes={num_nodes}
+  #SBATCH --gres=gpu:{num_gpus}
+  #SBATCH --cpus-per-task={num_cpus}
+  #SBATCH --mem={memory}
+  #SBATCH --time={time}
+  #SBATCH --partition={partition}
+  #SBATCH --exclude={exclude}
+  source ~/.bashrc
+  cd {project_root}
+  source .venv/bin/activate
+  python -m main {python_args}
